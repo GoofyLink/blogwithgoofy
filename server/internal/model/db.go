@@ -42,7 +42,7 @@ func InitDB(cfg *config.Config) {
 	if err := DB.AutoMigrate(
 		&User{}, &Category{}, &Tag{}, &Article{},
 		&Annotation{}, &Comment{}, &Link{}, &Page{},
-		&Book{}, &Chapter{}, &ChapterNote{}, &Word{}, &Setting{}, &Anime{}, &Artwork{}, &AiTool{}, &AiPrompt{}, &Game{}, &ApiLog{},
+		&Book{}, &Chapter{}, &ChapterNote{}, &Word{}, &Setting{}, &Anime{}, &Artwork{}, &AiTool{}, &AiPrompt{}, &Game{}, &ApiLog{}, &GamePost{}, &GameComment{},
 	); err != nil {
 		log.Fatalf("数据库迁移失败: %v", err)
 	}
@@ -396,5 +396,27 @@ func seed(db *gorm.DB) {
 			{Title: "黑神话：悟空", Category: "动作冒险", Platform: "PC,PS5", Tags: "国产,买断",
 				Description: "国产 3A 里程碑，西游题材动作 RPG。", Hot: 930000, Sort: 8, Status: 1},
 		})
+	}
+
+	// 游戏圈种子：攻略/资讯 + 评论（后台可增删改）
+	var gamePostCount int64
+	db.Model(&GamePost{}).Count(&gamePostCount)
+	if gamePostCount == 0 {
+		db.Create(&[]GamePost{
+			{GameID: 1, Type: "攻略", Title: "英雄联盟新手入门：补刀与眼位基础",
+				Summary: "从补刀节奏和地图意识开始，快速脱离新手期。",
+				Content: "## 补刀\n\n补刀是最重要的基本功。自定义练习：不出装备只补刀，10 分钟目标 70 刀。\n\n## 眼位\n\n河道草丛与三角草是前期关键眼位，辅助每波回城记得带真眼。\n\n## 地图意识\n\n小地图每 3 秒瞄一眼，敌方打野消失时及时后撤。", Status: 1},
+			{GameID: 1, Type: "资讯", Title: "S14 赛季改动速览：地图与装备更新",
+				Summary: "新赛季地图机制与传说装备调整一览。",
+				Content: "新赛季引入了虚空幼虫与巢虫机制，峡谷先锋刷新时间提前。传说装备全面调整，出装思路需要更新，具体以正式服公告为准。", Status: 1},
+		})
+		firstPost := GamePost{}
+		db.Where("game_id = ?", 1).Order("id ASC").First(&firstPost)
+		if firstPost.ID > 0 {
+			db.Create(&[]GameComment{
+				{PostID: firstPost.ID, GameID: 1, Nickname: "中路小学生", Content: "补刀练习真有用，20 分钟 180 刀了！"},
+				{PostID: firstPost.ID, GameID: 1, Nickname: "辅助不背锅", Content: "眼位那部分建议再加个常见反眼位置。"},
+			})
+		}
 	}
 }

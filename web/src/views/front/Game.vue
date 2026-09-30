@@ -63,7 +63,7 @@ onMounted(async () => {
       <!-- 左：游戏卡片 -->
       <div class="game-main">
         <div class="game-grid" v-loading="loading">
-          <div v-for="g in filtered" :key="g.id" class="game-card card">
+          <router-link v-for="g in filtered" :key="g.id" :to="`/game/${g.id}`" class="game-card card">
             <div class="cover" :style="g.cover ? { background: `url(${g.cover}) center/cover` } : {}">
               <span v-if="!g.cover" class="cover-fallback">{{ g.title.slice(0, 1) }}</span>
               <span v-if="g.platform" class="platform-tag">{{ g.platform }}</span>
@@ -79,7 +79,7 @@ onMounted(async () => {
                 <span v-for="t in parseTags(g.tags)" :key="t" class="tag">{{ t }}</span>
               </div>
             </div>
-          </div>
+          </router-link>
         </div>
         <el-empty v-if="!loading && !filtered.length" description="这个分类下还没有游戏" />
       </div>
@@ -92,7 +92,7 @@ onMounted(async () => {
         <ol class="hot-list">
           <li v-for="(g, i) in hotList" :key="g.id" class="hot-item">
             <span class="hot-rank" :class="{ top3: i < 3 }">{{ i + 1 }}</span>
-            <span class="hot-name" :title="g.title">{{ g.title }}</span>
+            <router-link :to="`/game/${g.id}`" class="hot-name" :title="g.title">{{ g.title }}</router-link>
             <span v-if="g.platform" class="hot-plat">{{ g.platform.split(',')[0] }}</span>
             <span class="hot-count">{{ formatHot(g.hot) }}</span>
           </li>
@@ -325,6 +325,9 @@ onMounted(async () => {
   min-width: 0;
   font-size: 13px;
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

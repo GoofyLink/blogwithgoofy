@@ -2,7 +2,7 @@ import { get, post, put, del } from './request'
 import type {
   ArchiveGroup, Article, ArticleDetailData, ArticleForm, Book, BookDetailData,
   Category, Chapter, ChapterDetailData, ChapterNote, CommentItem, DashboardStats,
-  LinkItem, LoginResp, PageResult, SinglePage, Tag, TranslateResp, WordItem, AnimeItem, ArtworkItem, AiToolItem, AiPromptItem, GameItem, ApiLogItem,
+  LinkItem, LoginResp, PageResult, SinglePage, Tag, TranslateResp, WordItem, AnimeItem, ArtworkItem, AiToolItem, AiPromptItem, GameItem, ApiLogItem, GamePostItem, GameCommentItem,
 } from '@/types'
 
 // ---- 认证 ----
@@ -274,6 +274,47 @@ export const fetchApiLogStats = () =>
   get<{ total: number; today: number; ips: number }>('/admin/apilogs/stats')
 
 export const clearApiLogs = () => del<null>('/admin/apilogs')
+
+// ---- 游戏圈 ----
+export const fetchGame = (id: number | string) => get<GameItem>(`/games/${id}`)
+
+export const fetchGamePosts = (gameId: number | string, params?: { type?: string }) =>
+  get<GamePostItem[]>(`/games/${gameId}/posts`, params)
+
+export const fetchGamePost = (id: number | string) =>
+  get<{ post: GamePostItem; game: GameItem }>(`/game-posts/${id}`)
+
+export const fetchGameComments = (postId: number | string) =>
+  get<GameCommentItem[]>(`/game-posts/${postId}/comments`)
+
+export const createGameComment = (
+  postId: number | string,
+  data: { nickname: string; email?: string; content: string },
+) => post<GameCommentItem>(`/game-posts/${postId}/comments`, data)
+
+export const adminFetchGamePosts = (gameId?: number | string) =>
+  get<GamePostItem[]>('/admin/game-posts', gameId ? { gameId } : undefined)
+
+export const createGamePost = (data: {
+  gameId: number
+  title: string
+  type: string
+  summary: string
+  content: string
+  status: 0 | 1
+}) => post<GamePostItem>('/admin/game-posts', data)
+
+export const updateGamePost = (
+  id: number,
+  data: { gameId: number; title: string; type: string; summary: string; content: string; status: 0 | 1 },
+) => put<GamePostItem>(`/admin/game-posts/${id}`, data)
+
+export const deleteGamePost = (id: number) => del<null>(`/admin/game-posts/${id}`)
+
+export const adminFetchGameComments = (params?: { page?: number; size?: number; postId?: number | string }) =>
+  get<PageResult<GameCommentItem>>('/admin/game-comments', params)
+
+export const deleteGameComment = (id: number) => del<null>(`/admin/game-comments/${id}`)
 
 // ---- 站点配置 ----
 export const fetchSettings = () => get<Record<string, string>>('/settings')

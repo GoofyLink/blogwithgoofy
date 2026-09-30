@@ -57,6 +57,11 @@ func Setup(cfg *config.Config) *gin.Engine {
 	v1.GET("/ai-tools", handler.ListAiTools)
 	v1.GET("/ai-prompts", handler.ListAiPrompts)
 	v1.GET("/games", handler.ListGames)
+	v1.GET("/games/:id", handler.GetGame)
+	v1.GET("/games/:id/posts", handler.ListGamePosts)
+	v1.GET("/game-posts/:id", handler.GetGamePost)
+	v1.GET("/game-posts/:id/comments", handler.ListGameComments)
+	v1.POST("/game-posts/:id/comments", handler.CreateGameComment)
 
 	// ---- 管理接口（JWT 鉴权） ----
 	admin := v1.Group("/admin", middleware.JWTAuth(cfg))
@@ -138,6 +143,12 @@ func Setup(cfg *config.Config) *gin.Engine {
 	admin.DELETE("/apilogs", handler.ClearApiLogs)
 
 	admin.GET("/games", handler.AdminListGames)
+	admin.GET("/game-posts", handler.AdminListGamePosts)
+	admin.POST("/game-posts", handler.CreateGamePost)
+	admin.PUT("/game-posts/:id", handler.UpdateGamePost)
+	admin.DELETE("/game-posts/:id", handler.DeleteGamePost)
+	admin.GET("/game-comments", handler.AdminListGameComments)
+	admin.DELETE("/game-comments/:id", handler.DeleteGameComment)
 	admin.POST("/games", handler.CreateGame)
 	admin.PUT("/games/:id", handler.UpdateGame)
 	admin.DELETE("/games/:id", handler.DeleteGame)

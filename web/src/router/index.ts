@@ -34,6 +34,8 @@ const router = createRouter({
         { path: 'art', name: 'art', component: () => import('@/views/front/Art.vue') },
         { path: 'ai', name: 'ai', component: () => import('@/views/front/AiHub.vue') },
         { path: 'game', name: 'game', component: () => import('@/views/front/Game.vue') },
+        { path: 'game/:id', name: 'gameDetail', component: () => import('@/views/front/GameDetail.vue') },
+        { path: 'game/post/:id', name: 'gamePost', component: () => import('@/views/front/GamePost.vue') },
       ],
     },
     {
@@ -53,6 +55,7 @@ const router = createRouter({
         { path: 'arts', name: 'adminArts', component: () => import('@/views/admin/ArtManage.vue') },
         { path: 'ai', name: 'adminAi', component: () => import('@/views/admin/AiManage.vue') },
         { path: 'games', name: 'adminGames', component: () => import('@/views/admin/GameManage.vue') },
+        { path: 'game-posts', name: 'adminGamePosts', component: () => import('@/views/admin/GamePostManage.vue') },
         { path: 'apilogs', name: 'adminApiLogs', component: () => import('@/views/admin/ApiLogManage.vue') },
         { path: 'articles', name: 'adminArticles', component: () => import('@/views/admin/ArticleList.vue') },
         { path: 'articles/new', name: 'articleNew', component: () => import('@/views/admin/ArticleEdit.vue') },

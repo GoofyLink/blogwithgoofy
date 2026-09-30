@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 import { adminFetchGames, createGame, deleteGame, updateGame, uploadImage } from '@/api'
 import type { GameItem } from '@/types'
 import AdminPagination from '@/components/AdminPagination.vue'
 import { usePagination } from '@/composables/usePagination'
 
+const router = useRouter()
 const list = ref<GameItem[]>([])
 const { page, pagedList } = usePagination(list)
 
@@ -140,6 +142,7 @@ onMounted(load)
       <el-table-column label="操作" width="145" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
+          <el-button link type="success" size="small" @click="router.push(`/admin/game-posts?gameId=${row.id}`)">攻略</el-button>
           <el-popconfirm :title="`删除「${row.title}」？`" @confirm="remove(row)">
             <template #reference>
               <el-button link type="danger" size="small">删除</el-button>

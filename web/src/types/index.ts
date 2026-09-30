@@ -268,6 +268,7 @@ export interface GameItem {
   category: string
   platform: string
   description: string
+  content?: string
   tags: string
   hot: number
   sort: number
@@ -286,6 +287,33 @@ export interface ApiLogItem {
   durationMs: number
   userAgent: string
   createdAt: string
+}
+
+/** 游戏攻略/资讯帖子 */
+export interface GamePostItem {
+  id: number
+  gameId: number
+  title: string
+  type: string
+  summary: string
+  content?: string
+  views: number
+  status: 0 | 1
+  createdAt: string
+  updatedAt: string
+}
+
+/** 游戏圈评论 */
+export interface GameCommentItem {
+  id: number
+  postId: number
+  gameId: number
+  nickname: string
+  email: string
+  content: string
+  createdAt: string
+  postTitle?: string
+  gameTitle?: string
 }
 
 /** 艺术鉴赏作品 */
