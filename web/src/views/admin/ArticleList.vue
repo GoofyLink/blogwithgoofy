@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 import { adminFetchArticles, deleteArticle } from '@/api'
+import AdminPagination from '@/components/AdminPagination.vue'
 import type { Article } from '@/types'
 
 const router = useRouter()
@@ -115,15 +116,7 @@ onMounted(load)
     </el-table>
 
     <div class="pagination-wrap" v-if="total > size">
-      <el-pagination
-        background
-        layout="total, prev, pager, next"
-        :total="total"
-        :page-size="size"
-        :current-page="page"
-        @current-change="(p: number) => { page = p; load() }"
-      />
-    </div>
+      <AdminPagination :page="page" :total="total" :size="size" @update:page="(p: number) => { page = p; load() }" /></div>
   </div>
 </template>
 

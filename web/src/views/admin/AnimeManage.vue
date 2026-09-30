@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminFetchAnimes, createAnime, deleteAnime, updateAnime, uploadImage } from '@/api'
 import type { AnimeItem } from '@/types'
+import AdminPagination from '@/components/AdminPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 
 const list = ref<AnimeItem[]>([])
 const loading = ref(false)
@@ -38,6 +40,7 @@ function addCategory() {
 const filteredList = computed(() =>
   activeCat.value ? list.value.filter((a) => a.category === activeCat.value) : list.value
 )
+const { page, pagedList } = usePagination(filteredList)
 
 const dialog = reactive({
   visible: false,
@@ -198,6 +201,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="page" :total="filteredList.length" />
 
     <el-dialog v-model="dialog.visible" :title="dialog.mode === 'create' ? '添加动漫' : '编辑动漫'" width="560px">
       <el-form label-width="90px">

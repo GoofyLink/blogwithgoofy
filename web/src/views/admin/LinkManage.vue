@@ -3,8 +3,12 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { createLink, deleteLink, fetchLinks, updateLink } from '@/api'
 import type { LinkItem } from '@/types'
+import AdminPagination from '@/components/AdminPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 
 const list = ref<LinkItem[]>([])
+const { page, pagedList } = usePagination(list)
+
 const loading = ref(false)
 
 const emptyForm = (): Omit<LinkItem, 'id'> => ({
@@ -75,7 +79,7 @@ onMounted(load)
       <el-button type="primary" @click="openCreate">＋ 添加友链</el-button>
     </div>
 
-    <el-table :data="list" v-loading="loading" stripe class="card table-card">
+    <el-table :data="pagedList" v-loading="loading" stripe class="card table-card">
       <el-table-column prop="name" label="名称" width="160" />
       <el-table-column label="地址" min-width="220">
         <template #default="{ row }">
@@ -95,6 +99,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="page" :total="list.length" />
 
     <el-dialog v-model="dialog.visible" :title="dialog.mode === 'create' ? '添加友链' : '编辑友链'" width="480px">
       <el-form label-width="70px">

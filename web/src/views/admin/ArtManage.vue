@@ -3,8 +3,12 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { adminFetchArts, createArt, deleteArt, updateArt, uploadImage } from '@/api'
 import type { ArtworkItem } from '@/types'
+import AdminPagination from '@/components/AdminPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 
 const list = ref<ArtworkItem[]>([])
+const { page, pagedList } = usePagination(list)
+
 const loading = ref(false)
 const uploading = ref(false)
 
@@ -96,7 +100,7 @@ onMounted(load)
       <span class="tip">图片可粘贴地址或直接上传；排序小的在前</span>
     </div>
 
-    <el-table :data="list" v-loading="loading" stripe class="card table-card">
+    <el-table :data="pagedList" v-loading="loading" stripe class="card table-card">
       <el-table-column label="图片" width="100">
         <template #default="{ row }">
           <el-image
@@ -133,6 +137,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="page" :total="list.length" />
 
     <el-dialog v-model="dialog.visible" :title="dialog.mode === 'create' ? '添加作品' : '编辑作品'" width="560px">
       <el-form label-width="90px">

@@ -4,8 +4,12 @@ import { ElMessage } from 'element-plus'
 import { MdEditor } from 'md-editor-v3'
 import { adminFetchPages, createPage, deletePage, updatePage } from '@/api'
 import type { SinglePage } from '@/types'
+import AdminPagination from '@/components/AdminPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 
 const list = ref<SinglePage[]>([])
+const { page, pagedList } = usePagination(list)
+
 const loading = ref(false)
 
 const emptyForm = () => ({ slug: '', title: '', content: '' })
@@ -71,7 +75,7 @@ onMounted(load)
       <span>单页用于「关于」等固定页面，前台地址为 <code>/p/:slug</code> 由导航引用；内置 <code>about</code> 即关于页。</span>
     </div>
 
-    <el-table :data="list" v-loading="loading" stripe class="card table-card">
+    <el-table :data="pagedList" v-loading="loading" stripe class="card table-card">
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="slug" label="Slug" width="160">
         <template #default="{ row }"><code>{{ row.slug }}</code></template>
@@ -91,6 +95,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="page" :total="list.length" />
 
     <el-dialog v-model="dialog.visible" :title="dialog.mode === 'create' ? '新建单页' : '编辑单页'" width="760px" top="6vh">
       <el-form label-width="70px">

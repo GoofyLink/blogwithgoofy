@@ -3,8 +3,12 @@ import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { createCategory, deleteCategory, fetchCategories, updateCategory } from '@/api'
 import type { Category } from '@/types'
+import AdminPagination from '@/components/AdminPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 
 const list = ref<Category[]>([])
+const { page, pagedList } = usePagination(list)
+
 const loading = ref(false)
 const creating = ref('')
 const editing = reactive({ visible: false, id: 0, name: '' })
@@ -63,7 +67,7 @@ onMounted(load)
       <el-input v-model="creating" placeholder="新分类名称" style="width: 240px" @keyup.enter="add" />
     </div>
 
-    <el-table :data="list" v-loading="loading" stripe class="card table-card">
+    <el-table :data="pagedList" v-loading="loading" stripe class="card table-card">
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="name" label="分类名" min-width="200" />
       <el-table-column label="文章数" width="110">
@@ -80,6 +84,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="page" :total="list.length" />
 
     <el-dialog v-model="editing.visible" title="重命名分类" width="400px">
       <el-input v-model="editing.name" @keyup.enter="saveEdit" />

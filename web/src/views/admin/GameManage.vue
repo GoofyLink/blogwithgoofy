@@ -3,8 +3,12 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { adminFetchGames, createGame, deleteGame, updateGame, uploadImage } from '@/api'
 import type { GameItem } from '@/types'
+import AdminPagination from '@/components/AdminPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 
 const list = ref<GameItem[]>([])
+const { page, pagedList } = usePagination(list)
+
 const loading = ref(false)
 const uploading = ref(false)
 
@@ -110,7 +114,7 @@ onMounted(load)
       <span class="tip">分类自动生成前台筛选标签；热度决定右侧热门榜排序</span>
     </div>
 
-    <el-table :data="list" v-loading="loading" stripe class="card table-card">
+    <el-table :data="pagedList" v-loading="loading" stripe class="card table-card">
       <el-table-column prop="sort" label="排序" width="65" />
       <el-table-column label="封面" width="100">
         <template #default="{ row }">
@@ -144,6 +148,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="page" :total="list.length" />
 
     <el-dialog v-model="dialog.visible" :title="dialog.mode === 'create' ? '添加游戏' : '编辑游戏'" width="560px">
       <el-form label-width="90px">

@@ -6,9 +6,13 @@ import {
   deleteAiPrompt, deleteAiTool, updateAiPrompt, updateAiTool,
 } from '@/api'
 import type { AiPromptItem, AiToolItem } from '@/types'
+import AdminPagination from '@/components/AdminPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 
 const tools = ref<AiToolItem[]>([])
+const { page: toolPage, pagedList: pagedTools } = usePagination(tools)
 const prompts = ref<AiPromptItem[]>([])
+const { page: promptPage, pagedList: pagedPrompts } = usePagination(prompts)
 const loading = ref(false)
 
 /** 下拉选项：已有值去重 + 本次新建 */
@@ -158,7 +162,7 @@ onMounted(load)
       <span class="tip">大类（如：AI编程 / AI绘画）决定前台一级 Tab；分类（如：代码补全 / 对话助手）决定二级筛选</span>
     </div>
 
-    <el-table :data="tools" v-loading="loading" stripe class="card table-card">
+    <el-table :data="pagedTools" v-loading="loading" stripe class="card table-card">
       <el-table-column prop="sort" label="排序" width="65" />
       <el-table-column prop="name" label="名称" width="140" />
       <el-table-column prop="url" label="网址" min-width="200" show-overflow-tooltip />
@@ -183,6 +187,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="toolPage" :total="tools.length" />
 
     <!-- 提示词管理 -->
     <div class="toolbar card prompt-toolbar">
@@ -190,7 +195,7 @@ onMounted(load)
       <span class="tip">提示词按大类跟随对应 Tab 展示，前台支持一键复制</span>
     </div>
 
-    <el-table :data="prompts" v-loading="loading" stripe class="card table-card">
+    <el-table :data="pagedPrompts" v-loading="loading" stripe class="card table-card">
       <el-table-column prop="sort" label="排序" width="65" />
       <el-table-column prop="title" label="标题" width="160" />
       <el-table-column prop="section" label="大类" width="95" />
@@ -213,6 +218,8 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="promptPage" :total="prompts.length" />
+
 
     <!-- 工具弹窗 -->
     <el-dialog v-model="toolDialog.visible" :title="toolDialog.mode === 'create' ? '添加工具' : '编辑工具'" width="560px">

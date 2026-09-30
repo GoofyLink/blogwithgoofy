@@ -4,10 +4,14 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminFetchBooks, createBook, deleteBook, updateBook } from '@/api'
 import type { Book } from '@/types'
+import AdminPagination from '@/components/AdminPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 
 const router = useRouter()
 
 const list = ref<Book[]>([])
+const { page, pagedList } = usePagination(list)
+
 const loading = ref(false)
 
 type BookForm = Pick<Book, 'title' | 'subtitle' | 'author' | 'language' | 'cover' | 'description' | 'type' | 'status' | 'sort'>
@@ -110,7 +114,7 @@ onMounted(load)
       <el-button type="primary" @click="openCreate">＋ 添加书籍</el-button>
     </div>
 
-    <el-table :data="list" v-loading="loading" stripe class="card table-card">
+    <el-table :data="pagedList" v-loading="loading" stripe class="card table-card">
       <el-table-column label="书名" min-width="260">
         <template #default="{ row }">
           <b>{{ row.title }}</b>
@@ -156,6 +160,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="page" :total="list.length" />
 
     <el-dialog v-model="dialog.visible" :title="dialog.mode === 'create' ? '添加书籍' : '编辑书籍'" width="560px">
       <el-form label-width="90px">

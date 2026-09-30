@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 import { adminFetchComments, deleteComment } from '@/api'
+import AdminPagination from '@/components/AdminPagination.vue'
 import type { CommentItem } from '@/types'
 
 const list = ref<CommentItem[]>([])
@@ -67,15 +68,7 @@ onMounted(load)
     </el-table>
 
     <div class="pagination-wrap" v-if="total > size">
-      <el-pagination
-        background
-        layout="total, prev, pager, next"
-        :total="total"
-        :page-size="size"
-        :current-page="page"
-        @current-change="(p: number) => { page = p; load() }"
-      />
-    </div>
+      <AdminPagination :page="page" :total="total" :size="size" @update:page="(p: number) => { page = p; load() }" /></div>
   </div>
 </template>
 

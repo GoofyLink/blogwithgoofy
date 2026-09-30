@@ -8,6 +8,8 @@ import {
   deleteChapter, updateChapter,
 } from '@/api'
 import type { Book, Chapter } from '@/types'
+import AdminPagination from '@/components/AdminPagination.vue'
+import { usePagination } from '@/composables/usePagination'
 import { alignTranslations, parseChapters, parseTitleList, readFileText, type ParsedChapter } from '@/utils/chapterImport'
 
 const route = useRoute()
@@ -16,6 +18,8 @@ const router = useRouter()
 const bookId = computed(() => Number(route.params.id))
 const book = ref<Book | null>(null)
 const list = ref<Chapter[]>([])
+const { page, pagedList } = usePagination(list)
+
 const loading = ref(false)
 
 const dialog = reactive({
@@ -234,7 +238,7 @@ onMounted(load)
       </div>
     </div>
 
-    <el-table :data="list" v-loading="loading" stripe class="card table-card">
+    <el-table :data="pagedList" v-loading="loading" stripe class="card table-card">
       <el-table-column prop="sort" label="序号" width="70" />
       <el-table-column prop="title" label="章节标题" min-width="240" />
       <el-table-column label="字数" width="90">
@@ -265,6 +269,7 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+    <AdminPagination v-model:page="page" :total="list.length" />
 
     <!-- 单章编辑 -->
     <el-dialog
