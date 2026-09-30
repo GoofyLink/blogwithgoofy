@@ -1,0 +1,14 @@
+server:
+  port: 8080
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  username: root
+  password: "replace-with-your-database-password"
+  database: blog
+  charset: utf8mb4
+
+jwt:
+  secret: "replace-with-a-long-random-secret"
+  expire_days: 7

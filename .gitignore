@@ -1,0 +1,20 @@
+# 依赖与产物
+web/node_modules/
+web/dist/
+server/uploads/*
+!server/uploads/.gitkeep
+
+# 本地环境与 IDE
+*.local
+.idea/
+.vscode/
+.zcode/
+.env
+.env.*
+!.env.example
+server/config.yaml
+*.log
+
+# Go
+server/blog
+server/blog.exe
