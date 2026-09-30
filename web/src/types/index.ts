@@ -276,6 +276,18 @@ export interface GameItem {
   updatedAt: string
 }
 
+/** 接口调用日志 */
+export interface ApiLogItem {
+  id: number
+  method: string
+  path: string
+  ip: string
+  status: number
+  durationMs: number
+  userAgent: string
+  createdAt: string
+}
+
 /** 艺术鉴赏作品 */
 export interface ArtworkItem {
   id: number

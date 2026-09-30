@@ -2,7 +2,7 @@ import { get, post, put, del } from './request'
 import type {
   ArchiveGroup, Article, ArticleDetailData, ArticleForm, Book, BookDetailData,
   Category, Chapter, ChapterDetailData, ChapterNote, CommentItem, DashboardStats,
-  LinkItem, LoginResp, PageResult, SinglePage, Tag, TranslateResp, WordItem, AnimeItem, ArtworkItem, AiToolItem, AiPromptItem, GameItem,
+  LinkItem, LoginResp, PageResult, SinglePage, Tag, TranslateResp, WordItem, AnimeItem, ArtworkItem, AiToolItem, AiPromptItem, GameItem, ApiLogItem,
 } from '@/types'
 
 // ---- 认证 ----
@@ -260,6 +260,20 @@ export const updateGame = (id: number, data: {
 }) => put<GameItem>(`/admin/games/${id}`, data)
 
 export const deleteGame = (id: number) => del<null>(`/admin/games/${id}`)
+
+// ---- 接口日志 ----
+export const adminFetchApiLogs = (params?: {
+  page?: number
+  size?: number
+  keyword?: string
+  method?: string
+  status?: string
+}) => get<PageResult<ApiLogItem>>('/admin/apilogs', params)
+
+export const fetchApiLogStats = () =>
+  get<{ total: number; today: number; ips: number }>('/admin/apilogs/stats')
+
+export const clearApiLogs = () => del<null>('/admin/apilogs')
 
 // ---- 站点配置 ----
 export const fetchSettings = () => get<Record<string, string>>('/settings')

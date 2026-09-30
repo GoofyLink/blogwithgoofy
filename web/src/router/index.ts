@@ -53,6 +53,7 @@ const router = createRouter({
         { path: 'arts', name: 'adminArts', component: () => import('@/views/admin/ArtManage.vue') },
         { path: 'ai', name: 'adminAi', component: () => import('@/views/admin/AiManage.vue') },
         { path: 'games', name: 'adminGames', component: () => import('@/views/admin/GameManage.vue') },
+        { path: 'apilogs', name: 'adminApiLogs', component: () => import('@/views/admin/ApiLogManage.vue') },
         { path: 'articles', name: 'adminArticles', component: () => import('@/views/admin/ArticleList.vue') },
         { path: 'articles/new', name: 'articleNew', component: () => import('@/views/admin/ArticleEdit.vue') },
         { path: 'articles/edit/:id', name: 'articleEdit', component: () => import('@/views/admin/ArticleEdit.vue') },

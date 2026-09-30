@@ -42,7 +42,7 @@ func InitDB(cfg *config.Config) {
 	if err := DB.AutoMigrate(
 		&User{}, &Category{}, &Tag{}, &Article{},
 		&Annotation{}, &Comment{}, &Link{}, &Page{},
-		&Book{}, &Chapter{}, &ChapterNote{}, &Word{}, &Setting{}, &Anime{}, &Artwork{}, &AiTool{}, &AiPrompt{}, &Game{},
+		&Book{}, &Chapter{}, &ChapterNote{}, &Word{}, &Setting{}, &Anime{}, &Artwork{}, &AiTool{}, &AiPrompt{}, &Game{}, &ApiLog{},
 	); err != nil {
 		log.Fatalf("数据库迁移失败: %v", err)
 	}

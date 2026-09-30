@@ -24,6 +24,7 @@ const menu = [
   { path: '/admin/comments', title: '评论管理', icon: 'ChatDotRound' },
   { path: '/admin/links', title: '友链管理', icon: 'Link' },
   { path: '/admin/pages', title: '单页管理', icon: 'Files' },
+  { path: '/admin/apilogs', title: '接口日志', icon: 'Tickets' },
 ]
 
 const pwdDialog = reactive({ visible: false, oldPassword: '', newPassword: '' })

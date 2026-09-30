@@ -25,6 +25,8 @@ func Setup(cfg *config.Config) *gin.Engine {
 	// 上传图片静态服务
 	r.Static("/uploads", "./uploads")
 
+	r.Use(middleware.ApiLog())
+
 	v1 := r.Group("/api/v1")
 
 	// ---- 公开接口 ----
@@ -130,6 +132,10 @@ func Setup(cfg *config.Config) *gin.Engine {
 	admin.POST("/ai-prompts", handler.CreateAiPrompt)
 	admin.PUT("/ai-prompts/:id", handler.UpdateAiPrompt)
 	admin.DELETE("/ai-prompts/:id", handler.DeleteAiPrompt)
+
+	admin.GET("/apilogs", handler.AdminListApiLogs)
+	admin.GET("/apilogs/stats", handler.ApiLogStats)
+	admin.DELETE("/apilogs", handler.ClearApiLogs)
 
 	admin.GET("/games", handler.AdminListGames)
 	admin.POST("/games", handler.CreateGame)
