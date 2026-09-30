@@ -18,7 +18,7 @@ const menu = [
   { path: '/admin/animes', title: '动漫管理', icon: 'VideoPlay' },
   { path: '/admin/arts', title: '艺术鉴赏', icon: 'Picture' },
   { path: '/admin/ai', title: 'AI 百宝箱', icon: 'Cpu' },
-  { path: '/admin/games', title: '游戏管理', icon: 'GamePad' },
+  { path: '/admin/games', title: '游戏管理', icon: 'Trophy' },
   { path: '/admin/categories', title: '分类管理', icon: 'FolderOpened' },
   { path: '/admin/tags', title: '标签管理', icon: 'PriceTag' },
   { path: '/admin/comments', title: '评论管理', icon: 'ChatDotRound' },
