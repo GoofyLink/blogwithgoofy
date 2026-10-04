@@ -27,6 +27,7 @@ type artForm struct {
 	Title       string `json:"title" binding:"required,max=191"`
 	Image       string `json:"image" binding:"max=500"`
 	Description string `json:"description" binding:"max=1000"`
+	Content     string `json:"content"`
 	Author      string `json:"author" binding:"max=191"`
 	Sort        int    `json:"sort"`
 	Status      int    `json:"status"`
@@ -49,7 +50,7 @@ func CreateArt(c *gin.Context) {
 	}
 	art := model.Artwork{
 		Title: form.Title, Image: form.Image, Description: form.Description,
-		Author: form.Author, Sort: form.Sort, Status: form.Status,
+		Content: form.Content, Author: form.Author, Sort: form.Sort, Status: form.Status,
 	}
 	if err := model.DB.Create(&art).Error; err != nil {
 		response.ServerError(c, err)
@@ -72,6 +73,7 @@ func UpdateArt(c *gin.Context) {
 	art.Title = form.Title
 	art.Image = form.Image
 	art.Description = form.Description
+	art.Content = form.Content
 	art.Author = form.Author
 	art.Sort = form.Sort
 	art.Status = form.Status
@@ -88,6 +90,7 @@ func DeleteArt(c *gin.Context) {
 		response.Fail(c, http.StatusNotFound, "作品不存在")
 		return
 	}
+	model.DB.Where("art_id = ?", art.ID).Delete(&model.ArtComment{})
 	model.DB.Delete(&art)
 	response.OK(c, nil)
 }

@@ -2,7 +2,7 @@ import { get, post, put, del } from './request'
 import type {
   ArchiveGroup, Article, ArticleDetailData, ArticleForm, Book, BookDetailData,
   Category, Chapter, ChapterDetailData, ChapterNote, CommentItem, DashboardStats,
-  LinkItem, LoginResp, PageResult, SinglePage, Tag, TranslateResp, WordItem, AnimeItem, ArtworkItem, AiToolItem, AiPromptItem, GameItem, ApiLogItem, GamePostItem, GameCommentItem,
+  LinkItem, LoginResp, PageResult, SinglePage, Tag, TranslateResp, WordItem, AnimeItem, ArtworkItem, AiToolItem, AiPromptItem, GameItem, ApiLogItem, GamePostItem, GameCommentItem, ArtCommentItem,
 } from '@/types'
 
 // ---- 认证 ----
@@ -275,6 +275,22 @@ export const fetchApiLogStats = () =>
 
 export const clearApiLogs = () => del<null>('/admin/apilogs')
 
+// ---- 艺术鉴赏详情与评论 ----
+export const fetchArt = (id: number | string) => get<ArtworkItem>(`/arts/${id}`)
+
+export const fetchArtComments = (artId: number | string) =>
+  get<ArtCommentItem[]>(`/arts/${artId}/comments`)
+
+export const createArtComment = (
+  artId: number | string,
+  data: { nickname: string; email?: string; content: string },
+) => post<ArtCommentItem>(`/arts/${artId}/comments`, data)
+
+export const adminFetchArtComments = (params?: { page?: number; size?: number }) =>
+  get<PageResult<ArtCommentItem>>('/admin/art-comments', params)
+
+export const deleteArtComment = (id: number) => del<null>(`/admin/art-comments/${id}`)
+
 // ---- 游戏圈 ----
 export const fetchGame = (id: number | string) => get<GameItem>(`/games/${id}`)
 
@@ -358,6 +374,7 @@ export const createArt = (data: {
   title: string
   image: string
   description: string
+  content: string
   author: string
   sort: number
   status: 0 | 1
@@ -367,6 +384,7 @@ export const updateArt = (id: number, data: {
   title: string
   image: string
   description: string
+  content: string
   author: string
   sort: number
   status: 0 | 1

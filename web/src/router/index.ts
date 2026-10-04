@@ -32,6 +32,7 @@ const router = createRouter({
         { path: 'novel/chapter/:id', name: 'novelChapter', component: () => import('@/views/front/NovelChapter.vue') },
         { path: 'anime', name: 'anime', component: () => import('@/views/front/Anime.vue') },
         { path: 'art', name: 'art', component: () => import('@/views/front/Art.vue') },
+        { path: 'art/:id', name: 'artDetail', component: () => import('@/views/front/ArtDetail.vue') },
         { path: 'ai', name: 'ai', component: () => import('@/views/front/AiHub.vue') },
         { path: 'game', name: 'game', component: () => import('@/views/front/Game.vue') },
         { path: 'game/:id', name: 'gameDetail', component: () => import('@/views/front/GameDetail.vue') },

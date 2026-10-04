@@ -54,6 +54,9 @@ func Setup(cfg *config.Config) *gin.Engine {
 	v1.GET("/settings", handler.GetSettings)
 	v1.GET("/animes", handler.ListAnimes)
 	v1.GET("/arts", handler.ListArts)
+	v1.GET("/arts/:id", handler.GetArt)
+	v1.GET("/arts/:id/comments", handler.ListArtComments)
+	v1.POST("/arts/:id/comments", handler.CreateArtComment)
 	v1.GET("/ai-tools", handler.ListAiTools)
 	v1.GET("/ai-prompts", handler.ListAiPrompts)
 	v1.GET("/games", handler.ListGames)
@@ -124,6 +127,8 @@ func Setup(cfg *config.Config) *gin.Engine {
 	admin.DELETE("/animes/:id", handler.DeleteAnime)
 
 	admin.GET("/arts", handler.AdminListArts)
+	admin.GET("/art-comments", handler.AdminListArtComments)
+	admin.DELETE("/art-comments/:id", handler.DeleteArtComment)
 	admin.POST("/arts", handler.CreateArt)
 	admin.PUT("/arts/:id", handler.UpdateArt)
 	admin.DELETE("/arts/:id", handler.DeleteArt)

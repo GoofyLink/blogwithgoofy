@@ -24,7 +24,7 @@ onMounted(async () => {
     </div>
 
     <div class="art-grid" v-loading="loading">
-      <div v-for="a in list" :key="a.id" class="art-card card">
+      <router-link v-for="a in list" :key="a.id" :to="`/art/${a.id}`" class="art-card card">
         <el-image
           v-if="a.image"
           :src="a.image"
@@ -44,7 +44,7 @@ onMounted(async () => {
           </div>
           <p v-if="a.description" class="art-desc">{{ a.description }}</p>
         </div>
-      </div>
+      </router-link>
     </div>
     <el-empty v-if="!loading && !list.length" description="画廊还是空的，去后台「艺术鉴赏管理」添加作品吧" />
   </div>

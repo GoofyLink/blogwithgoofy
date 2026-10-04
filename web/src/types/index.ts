@@ -316,12 +316,24 @@ export interface GameCommentItem {
   gameTitle?: string
 }
 
+/** 艺术作品评论 */
+export interface ArtCommentItem {
+  id: number
+  artId: number
+  nickname: string
+  email: string
+  content: string
+  createdAt: string
+  artTitle?: string
+}
+
 /** 艺术鉴赏作品 */
 export interface ArtworkItem {
   id: number
   title: string
   image: string
   description: string
+  content?: string
   author: string
   sort: number
   status: 0 | 1

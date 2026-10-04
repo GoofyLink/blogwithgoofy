@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import { adminFetchArts, createArt, deleteArt, updateArt, uploadImage } from '@/api'
-import type { ArtworkItem } from '@/types'
 import AdminPagination from '@/components/AdminPagination.vue'
+import { ElMessage } from 'element-plus'
+import { adminFetchArtComments, adminFetchArts, createArt, deleteArt, deleteArtComment, updateArt, uploadImage } from '@/api'
+import type { ArtCommentItem, ArtworkItem } from '@/types'
 import { usePagination } from '@/composables/usePagination'
 
 const list = ref<ArtworkItem[]>([])
@@ -20,6 +20,7 @@ const dialog = reactive({
     title: '',
     image: '',
     description: '',
+    content: '',
     author: '',
     sort: 0,
     status: 1 as 0 | 1,
@@ -39,7 +40,7 @@ function openCreate() {
   const maxSort = list.value.reduce((m, a) => Math.max(m, a.sort), 0)
   dialog.mode = 'create'
   dialog.editId = 0
-  dialog.data = { title: '', image: '', description: '', author: '', sort: maxSort + 1, status: 1 }
+  dialog.data = { title: '', image: '', description: '', content: '', author: '', sort: maxSort + 1, status: 1 }
   dialog.visible = true
 }
 
@@ -50,6 +51,7 @@ function openEdit(row: ArtworkItem) {
     title: row.title,
     image: row.image,
     description: row.description,
+    content: row.content || '',
     author: row.author,
     sort: row.sort,
     status: row.status,
@@ -90,7 +92,27 @@ async function remove(row: ArtworkItem) {
   load()
 }
 
-onMounted(load)
+const comments = ref<ArtCommentItem[]>([])
+const cTotal = ref(0)
+const cPage = ref(1)
+const cSize = 10
+
+async function loadComments() {
+  const data = await adminFetchArtComments({ page: cPage.value, size: cSize })
+  comments.value = data.list || []
+  cTotal.value = data.total
+}
+
+async function removeComment(row: ArtCommentItem) {
+  await deleteArtComment(row.id)
+  ElMessage.success('已删除')
+  loadComments()
+}
+
+onMounted(() => {
+  load()
+  loadComments()
+})
 </script>
 
 <template>
@@ -137,6 +159,29 @@ onMounted(load)
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 评论管理 -->
+    <div class="toolbar card gap-top">
+      <span class="tip">作品评论（{{ cTotal }}）</span>
+    </div>
+    <el-table :data="comments" stripe class="card table-card">
+      <el-table-column prop="nickname" label="昵称" width="110" />
+      <el-table-column prop="content" label="内容" min-width="240" show-overflow-tooltip />
+      <el-table-column prop="artTitle" label="所属作品" min-width="160" show-overflow-tooltip />
+      <el-table-column label="时间" width="150">
+        <template #default="{ row }">{{ row.createdAt?.replace('T', ' ').slice(0, 16) }}</template>
+      </el-table-column>
+      <el-table-column label="操作" width="80" fixed="right">
+        <template #default="{ row }">
+          <el-popconfirm title="删除这条评论？" @confirm="removeComment(row)">
+            <template #reference>
+              <el-button link type="danger" size="small">删除</el-button>
+            </template>
+          </el-popconfirm>
+        </template>
+      </el-table-column>
+    </el-table>
+    <AdminPagination :page="cPage" :total="cTotal" :size="cSize" @update:page="(p: number) => { cPage = p; loadComments() }" />
     <AdminPagination v-model:page="page" :total="list.length" />
 
     <el-dialog v-model="dialog.visible" :title="dialog.mode === 'create' ? '添加作品' : '编辑作品'" width="560px">
@@ -178,6 +223,9 @@ onMounted(load)
         <el-form-item label="简介">
           <el-input v-model="dialog.data.description" type="textarea" :rows="3" placeholder="作品介绍" />
         </el-form-item>
+        <el-form-item label="详细介绍">
+          <el-input v-model="dialog.data.content" type="textarea" :rows="6" placeholder="详情页的作品解读（支持 Markdown），选填" />
+        </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="dialog.data.sort" :min="0" />
           <span class="sort-tip">数字小的排前面</span>
@@ -198,6 +246,8 @@ onMounted(load)
 </template>
 
 <style scoped>
+.gap-top { margin-top: 24px; }
+
 .toolbar {
   display: flex;
   align-items: center;
