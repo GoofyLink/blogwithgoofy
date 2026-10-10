@@ -235,29 +235,10 @@ export const fetchGames = (params?: { category?: string }) =>
 
 export const adminFetchGames = () => get<GameItem[]>('/admin/games')
 
-export const createGame = (data: {
-  title: string
-  cover: string
-  category: string
-  platform: string
-  description: string
-  tags: string
-  hot: number
-  sort: number
-  status: 0 | 1
-}) => post<GameItem>('/admin/games', data)
-
-export const updateGame = (id: number, data: {
-  title: string
-  cover: string
-  category: string
-  platform: string
-  description: string
-  tags: string
-  hot: number
-  sort: number
-  status: 0 | 1
-}) => put<GameItem>(`/admin/games/${id}`, data)
+type GameForm = Omit<GameItem, 'id' | 'createdAt' | 'updatedAt' | 'postCount'>
+export const createGame = (data: GameForm) => post<GameItem>('/admin/games', data)
+export const updateGame = (id: number, data: GameForm) => put<GameItem>(`/admin/games/${id}`, data)
+export const fetchLatestGamePosts = () => get<GamePostItem[]>('/game-posts')
 
 export const deleteGame = (id: number) => del<null>(`/admin/games/${id}`)
 
@@ -343,25 +324,11 @@ export const fetchAnimes = () => get<AnimeItem[]>('/animes')
 
 export const adminFetchAnimes = () => get<AnimeItem[]>('/admin/animes')
 
-export const createAnime = (data: {
-  title: string
-  cover: string
-  region: string
-  episodes: string
-  description: string
-  rank: number
-  status: 0 | 1
-}) => post<AnimeItem>('/admin/animes', data)
-
-export const updateAnime = (id: number, data: {
-  title: string
-  cover: string
-  region: string
-  episodes: string
-  description: string
-  rank: number
-  status: 0 | 1
-}) => put<AnimeItem>(`/admin/animes/${id}`, data)
+export type AnimeForm = Omit<AnimeItem, 'id' | 'createdAt' | 'updatedAt' | 'progressUpdatedAt' | 'reviewUpdatedAt'>
+export const createAnime = (data: AnimeForm) => post<AnimeItem>('/admin/animes', data)
+export const updateAnime = (id: number, data: AnimeForm) => put<AnimeItem>(`/admin/animes/${id}`, data)
+export const fetchAnime = (id: string | number) => get<AnimeItem>(`/animes/${id}`)
+export const advanceAnime = (id: number) => post<null>(`/admin/animes/${id}/progress`)
 
 export const deleteAnime = (id: number) => del<null>(`/admin/animes/${id}`)
 
@@ -394,3 +361,5 @@ export const deleteArt = (id: number) => del<null>(`/admin/arts/${id}`)
 
 export const reorderAnimes = (ids: number[]) =>
   post<null>('/admin/animes/reorder', { ids })
+
+export const fetchAnalytics = (params: { start: string; end: string; module?: string; includeAdmin: boolean }) => get<import('@/types/analytics').AnalyticsData>('/admin/analytics', params)

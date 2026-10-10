@@ -97,6 +97,8 @@ npm run dev
 
 ## 常见问题
 
+访问统计的指标口径、本地调试方法和数据保留规则见 [访问统计说明](docs/analytics.md)。
+
 - **后端起不来提示连接失败**：确认 phpstudy MySQL 已启动、`blog` 库已建、`config.yaml` 密码正确
 - **翻译不出/变慢**：翻译走后端代理（`/api/v1/translate`），依赖外网 MyMemory 服务；同一词句翻译过一次后会命中缓存。国内网络 MyMemory 可直连；若部署在海外可自动回退 Google 翻译
 - **图片上传失败**：图片 ≤5MB，仅支持 jpg/png/gif/webp；文件存在 `server/uploads/`

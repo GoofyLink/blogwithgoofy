@@ -9,7 +9,7 @@ import (
 
 func Dashboard(c *gin.Context) {
 	var articleCount, publishedCount, learningCount, commentCount,
-		categoryCount, tagCount, viewTotal, bookCount, chapterCount int64
+		categoryCount, tagCount, bookCount, chapterCount int64
 
 	model.DB.Model(&model.Article{}).Count(&articleCount)
 	model.DB.Model(&model.Article{}).Where("status = ?", model.StatusPublished).Count(&publishedCount)
@@ -17,7 +17,6 @@ func Dashboard(c *gin.Context) {
 	model.DB.Model(&model.Comment{}).Count(&commentCount)
 	model.DB.Model(&model.Category{}).Count(&categoryCount)
 	model.DB.Model(&model.Tag{}).Count(&tagCount)
-	model.DB.Model(&model.Article{}).Select("COALESCE(SUM(views), 0)").Scan(&viewTotal)
 	model.DB.Model(&model.Book{}).Count(&bookCount)
 	model.DB.Model(&model.Chapter{}).Count(&chapterCount)
 
@@ -28,7 +27,6 @@ func Dashboard(c *gin.Context) {
 		"commentCount":   commentCount,
 		"categoryCount":  categoryCount,
 		"tagCount":       tagCount,
-		"viewTotal":      viewTotal,
 		"bookCount":      bookCount,
 		"chapterCount":   chapterCount,
 	})

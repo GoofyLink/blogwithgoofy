@@ -15,12 +15,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 
 	// 开发环境直接跨域放开；生产走 nginx 反代同源
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5173"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		AllowCredentials: true,
-	}))
+	r.Use(developmentCORS())
 
 	// 上传图片静态服务
 	r.Static("/uploads", "./uploads")
@@ -31,6 +26,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 
 	// ---- 公开接口 ----
 	v1.POST("/auth/login", handler.Login)
+	v1.POST("/analytics/events", handler.CollectAnalytics)
 
 	v1.GET("/articles", handler.ListArticles)
 	v1.GET("/articles/archives", handler.Archives)
@@ -53,6 +49,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	v1.GET("/words", handler.ListWords)
 	v1.GET("/settings", handler.GetSettings)
 	v1.GET("/animes", handler.ListAnimes)
+	v1.GET("/animes/:id", handler.GetAnime)
 	v1.GET("/arts", handler.ListArts)
 	v1.GET("/arts/:id", handler.GetArt)
 	v1.GET("/arts/:id/comments", handler.ListArtComments)
@@ -62,6 +59,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	v1.GET("/games", handler.ListGames)
 	v1.GET("/games/:id", handler.GetGame)
 	v1.GET("/games/:id/posts", handler.ListGamePosts)
+	v1.GET("/game-posts", handler.LatestGamePosts)
 	v1.GET("/game-posts/:id", handler.GetGamePost)
 	v1.GET("/game-posts/:id/comments", handler.ListGameComments)
 	v1.POST("/game-posts/:id/comments", handler.CreateGameComment)
@@ -70,6 +68,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	admin := v1.Group("/admin", middleware.JWTAuth(cfg))
 
 	admin.GET("/dashboard", handler.Dashboard)
+	admin.GET("/analytics", handler.AnalyticsDashboard)
 	admin.PUT("/password", handler.ChangePassword)
 
 	admin.GET("/articles", handler.AdminListArticles)
@@ -124,6 +123,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	admin.GET("/animes", handler.AdminListAnimes)
 	admin.POST("/animes", handler.CreateAnime)
 	admin.PUT("/animes/:id", handler.UpdateAnime)
+	admin.POST("/animes/:id/progress", handler.AdvanceAnime)
 	admin.DELETE("/animes/:id", handler.DeleteAnime)
 
 	admin.GET("/arts", handler.AdminListArts)
@@ -161,4 +161,16 @@ func Setup(cfg *config.Config) *gin.Engine {
 	admin.POST("/upload", handler.Upload)
 
 	return r
+}
+
+func developmentCORS() gin.HandlerFunc {
+	return cors.New(cors.Config{
+		AllowOrigins: []string{
+			"http://localhost:5180", "http://127.0.0.1:5180",
+			"http://localhost:5173", "http://127.0.0.1:5173",
+		},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
 }

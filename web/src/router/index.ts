@@ -30,6 +30,7 @@ const router = createRouter({
         { path: 'novel', name: 'novel', component: () => import('@/views/front/NovelIndex.vue') },
         { path: 'novel/book/:id', name: 'novelBook', component: () => import('@/views/front/NovelBook.vue') },
         { path: 'novel/chapter/:id', name: 'novelChapter', component: () => import('@/views/front/NovelChapter.vue') },
+        { path: 'anime/:id', name: 'animeDetail', component: () => import('@/views/front/AnimeDetail.vue') },
         { path: 'anime', name: 'anime', component: () => import('@/views/front/Anime.vue') },
         { path: 'art', name: 'art', component: () => import('@/views/front/Art.vue') },
         { path: 'art/:id', name: 'artDetail', component: () => import('@/views/front/ArtDetail.vue') },

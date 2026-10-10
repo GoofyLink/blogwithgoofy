@@ -181,7 +181,7 @@ function isActive(path: string) {
             :exit="{ opacity: 0, y: -10 }"
             :transition="{ duration: 0.22, ease: 'easeOut' }"
           >
-            <component :is="Component" />
+            <component :is="Component" :key="route.path" />
           </motion.div>
         </AnimatePresence>
       </router-view>
@@ -480,6 +480,24 @@ function isActive(path: string) {
 
   .header-inner {
     gap: 10px;
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .nav {
+    order: 3;
+    flex: 0 0 100%;
+    overflow-x: auto;
+  }
+
+  .nav-item {
+    flex-shrink: 0;
+  }
+
+  .header-actions {
+    margin-left: auto;
   }
 }
 </style>

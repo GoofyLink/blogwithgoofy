@@ -40,6 +40,7 @@ func InitDB(cfg *config.Config) {
 	}
 
 	if err := DB.AutoMigrate(
+		&AnalyticsVisit{}, &AnalyticsFact{}, &AnalyticsReceipt{}, &AnalyticsState{},
 		&User{}, &Category{}, &Tag{}, &Article{},
 		&Annotation{}, &Comment{}, &Link{}, &Page{},
 		&Book{}, &Chapter{}, &ChapterNote{}, &Word{}, &Setting{}, &Anime{}, &Artwork{}, &AiTool{}, &AiPrompt{}, &Game{}, &ApiLog{}, &GamePost{}, &GameComment{}, &ArtComment{},
@@ -47,6 +48,7 @@ func InitDB(cfg *config.Config) {
 		log.Fatalf("数据库迁移失败: %v", err)
 	}
 
+	db.FirstOrCreate(&AnalyticsState{ID: 1})
 	seed(db)
 }
 
@@ -380,21 +382,21 @@ func seed(db *gorm.DB) {
 	if gameCount == 0 {
 		db.Create(&[]Game{
 			{Title: "英雄联盟", Category: "电竞", Platform: "PC", Tags: "MOBA,免费",
-				Description: "全球最流行的 MOBA 电竞项目，S 赛是全球电竞狂欢。", Hot: 980000, Sort: 1, Status: 1},
+				Description: "全球最流行的 MOBA 电竞项目，S 赛是全球电竞狂欢。", Sort: 1, Status: 1},
 			{Title: "CS2", Category: "电竞", Platform: "PC", Tags: "FPS,免费",
-				Description: "经典竞技射击的续作，Major 赛事体系成熟。", Hot: 870000, Sort: 2, Status: 1},
+				Description: "经典竞技射击的续作，Major 赛事体系成熟。", Sort: 2, Status: 1},
 			{Title: "王者荣耀", Category: "电竞", Platform: "手机", Tags: "MOBA,免费",
-				Description: "国民手游电竞，KPL 职业联赛热度极高。", Hot: 950000, Sort: 3, Status: 1},
+				Description: "国民手游电竞，KPL 职业联赛热度极高。", Sort: 3, Status: 1},
 			{Title: "无畏契约", Category: "电竞", Platform: "PC", Tags: "FPS,免费",
-				Description: " Riot 出品的战术射击，技能+枪法组合竞技。", Hot: 760000, Sort: 4, Status: 1},
+				Description: " Riot 出品的战术射击，技能+枪法组合竞技。", Sort: 4, Status: 1},
 			{Title: "原神", Category: "开放世界", Platform: "全平台", Tags: "RPG,免费",
-				Description: "米哈游开放世界标杆，探索与剧情兼备。", Hot: 890000, Sort: 5, Status: 1},
+				Description: "米哈游开放世界标杆，探索与剧情兼备。", Sort: 5, Status: 1},
 			{Title: "艾尔登法环", Category: "动作冒险", Platform: "主机,PC", Tags: "魂系,买断",
-				Description: "宫崎英高的开放魂系神作，DLC 黄金树幽影同样精彩。", Hot: 720000, Sort: 6, Status: 1},
+				Description: "宫崎英高的开放魂系神作，DLC 黄金树幽影同样精彩。", Sort: 6, Status: 1},
 			{Title: "塞尔达传说：王国之泪", Category: "开放世界", Platform: "Switch", Tags: "任天堂,买断",
-				Description: "创造力天花板，究极手玩法自由度无上限。", Hot: 810000, Sort: 7, Status: 1},
+				Description: "创造力天花板，究极手玩法自由度无上限。", Sort: 7, Status: 1},
 			{Title: "黑神话：悟空", Category: "动作冒险", Platform: "PC,PS5", Tags: "国产,买断",
-				Description: "国产 3A 里程碑，西游题材动作 RPG。", Hot: 930000, Sort: 8, Status: 1},
+				Description: "国产 3A 里程碑，西游题材动作 RPG。", Sort: 8, Status: 1},
 		})
 	}
 

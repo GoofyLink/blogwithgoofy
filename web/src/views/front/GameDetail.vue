@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { fetchGame, fetchGamePosts } from '@/api'
 import type { GameItem, GamePostItem } from '@/types'
+
+import { renderMarkdown } from '@/utils/markdown'
+import { playLabel } from '@/utils/game'
 
 const route = useRoute()
 const game = ref<GameItem | null>(null)
 const posts = ref<GamePostItem[]>([])
 const activeType = ref('')
 const loading = ref(false)
+const error = ref(false)
+const contentHtml = computed(() => renderMarkdown(game.value?.content || ''))
 
 const types = computed(() => {
   const set = new Set<string>()
@@ -21,30 +26,33 @@ const filtered = computed(() =>
   activeType.value ? posts.value.filter((p) => p.type === activeType.value) : posts.value,
 )
 
-function formatHot(n: number): string {
-  if (!n) return '0'
-  return n >= 10000 ? (n / 10000).toFixed(1) + ' 万' : String(n)
-}
-
 const parseTags = (tags: string): string[] =>
   tags.split(/[,，]/).map((t) => t.trim()).filter(Boolean)
 
-onMounted(async () => {
+let loadVersion = 0
+async function load() {
+  const version = ++loadVersion
   loading.value = true
+  error.value = false
+  game.value = null
+  activeType.value = ''
   try {
     const id = route.params.id as string
     const [g, p] = await Promise.all([fetchGame(id), fetchGamePosts(id)])
+    if (version !== loadVersion) return
     game.value = g
     posts.value = p || []
-  } finally {
-    loading.value = false
-  }
-})
+  } catch { if (version === loadVersion) error.value = true }
+  finally { if (version === loadVersion) loading.value = false }
+}
+watch(() => route.params.id, load, { immediate: true })
 </script>
 
 <template>
-  <div class="container detail-wrap" v-if="game">
-    <router-link to="/game" class="back-link">← 游戏世界</router-link>
+  <div v-if="loading" class="container" style="padding: 40px" aria-live="polite">正在加载游戏记录…</div>
+  <div v-else-if="error" class="container" role="alert"><el-empty description="游戏不存在、已隐藏或暂时无法加载"><el-button @click="load">重试</el-button><router-link to="/game">返回游戏库</router-link></el-empty></div>
+  <div class="container detail-wrap" v-else-if="game">
+    <router-link to="/game" class="back-link">← 游戏与手记</router-link>
 
     <!-- 游戏信息头 -->
     <div class="card head-card">
@@ -56,7 +64,7 @@ onMounted(async () => {
         <p class="meta">
           <span v-if="game.category" class="cat-badge">{{ game.category }}</span>
           <span v-if="game.platform">{{ game.platform }}</span>
-          <span class="hot">🔥 {{ formatHot(game.hot) }}</span>
+          <span v-if="game.playStatus" class="cat-badge">{{ playLabel(game.playStatus) }}</span>
         </p>
         <div class="tags" v-if="parseTags(game.tags).length">
           <span v-for="t in parseTags(game.tags)" :key="t" class="tag">{{ t }}</span>
@@ -64,10 +72,17 @@ onMounted(async () => {
       </div>
     </div>
 
+    <section v-if="game.description || game.review || game.progress" class="card content-card">
+      <h2>我的游玩记录</h2>
+      <p v-if="game.description">{{ game.description }}</p>
+      <blockquote v-if="game.review" class="personal-review">{{ game.review }}</blockquote>
+      <p v-if="game.progress">当前进度：{{ game.progress }}</p>
+    </section>
+    <section v-if="game.content" class="card content-card"><h2>游戏介绍</h2><div class="md-content" v-html="contentHtml" /></section>
     <!-- 攻略资讯圈 -->
     <div class="card posts-card">
       <div class="posts-head">
-        <h3 class="posts-title">📕 攻略资讯圈</h3>
+        <h3 class="posts-title">攻略与手记</h3>
         <div v-if="types.length" class="type-tabs">
           <button class="type-tab" :class="{ active: !activeType }" @click="activeType = ''">全部</button>
           <button
@@ -101,16 +116,18 @@ onMounted(async () => {
             </div>
           </router-link>
         </div>
-        <el-empty v-else-if="!loading" description="还没有攻略资讯，去后台「游戏攻略」发布吧" />
+        <el-empty v-else-if="!loading" description="这款游戏的攻略与手记正在整理中" />
       </div>
     </div>
 
     <!-- 游戏详细介绍 -->
-    <div v-if="game.content" class="card content-card md-content" v-html="game.content" />
+
   </div>
 </template>
 
 <style scoped>
+.personal-review { border-left: 3px solid var(--accent); margin: 18px 0; padding: 8px 18px; line-height: 1.8; }
+.content-card { margin-bottom: 18px; overflow-wrap: anywhere; }
 .detail-wrap {
   max-width: 900px;
 }

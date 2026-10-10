@@ -16,7 +16,7 @@ const apiLogBufferSize = 512
 const apiLogRetention = 7 * 24 * time.Hour
 
 // 不记录的高频/自查询路径前缀
-var apiLogSkipPrefixes = []string{"/api/v1/admin/apilogs"}
+var apiLogSkipPrefixes = []string{"/api/v1/admin/apilogs", "/api/v1/analytics/", "/api/v1/admin/analytics"}
 
 // ApiLog 记录 /api/v1 接口调用：方法、路径、IP、状态码、耗时（异步落库）
 func ApiLog() gin.HandlerFunc {

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { analyticsRequest, analyticsResponse } from '@/utils/analytics'
 import { ElMessage } from 'element-plus'
 
 const request = axios.create({
@@ -7,6 +8,8 @@ const request = axios.create({
 })
 
 request.interceptors.request.use((config) => {
+  // 标记请求所属页面版本；迟到的旧页面响应不能触发当前页面的 PV。
+  analyticsRequest(config)
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
@@ -19,6 +22,8 @@ request.interceptors.response.use(
       ElMessage.error(body.msg || '请求失败')
       return Promise.reject(new Error(body.msg || '请求失败'))
     }
+    // 业务成功且有数据才通知埋点；具体是否主接口，由采集器继续判断。
+    if (body.data != null) analyticsResponse(resp.config)
     return body.data
   },
   (err) => {

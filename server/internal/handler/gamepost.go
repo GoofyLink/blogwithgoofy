@@ -85,7 +85,7 @@ func CreateGameComment(c *gin.Context) {
 	comment := model.GameComment{
 		PostID: uint(postID), GameID: post.GameID,
 		Nickname: strings.TrimSpace(form.Nickname),
-		Email: form.Email, Content: form.Content,
+		Email:    form.Email, Content: form.Content,
 	}
 	if err := model.DB.Create(&comment).Error; err != nil {
 		response.ServerError(c, err)
@@ -217,4 +217,18 @@ func DeleteGameComment(c *gin.Context) {
 	}
 	model.DB.Delete(&comment)
 	response.OK(c, nil)
+}
+
+// LatestGamePosts only exposes published posts belonging to visible games.
+func LatestGamePosts(c *gin.Context) {
+	var posts []model.GamePost
+	err := model.DB.Model(&model.GamePost{}).Select("game_posts.*").
+		Joins("JOIN games ON games.id = game_posts.game_id AND games.status = ?", model.StatusPublished).
+		Where("game_posts.status = ?", model.StatusPublished).
+		Order("game_posts.updated_at DESC, game_posts.id DESC").Limit(6).Find(&posts).Error
+	if err != nil {
+		response.ServerError(c, err)
+		return
+	}
+	response.OK(c, posts)
 }

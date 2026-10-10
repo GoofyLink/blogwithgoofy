@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"blogwitgoofy/server/internal/config"
+	"blogwitgoofy/server/internal/handler"
 	"blogwitgoofy/server/internal/model"
 	"blogwitgoofy/server/internal/router"
 )
@@ -18,6 +19,7 @@ func main() {
 	}
 
 	model.InitDB(cfg)
+	handler.StartAnalyticsMaintenance()
 
 	r := router.Setup(cfg)
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)

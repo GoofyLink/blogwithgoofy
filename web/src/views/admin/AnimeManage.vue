@@ -1,376 +1,263 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { adminFetchAnimes, createAnime, deleteAnime, updateAnime, uploadImage } from '@/api'
+import { computed, onMounted, ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import {
+  adminFetchAnimes,
+  createAnime,
+  updateAnime,
+  deleteAnime,
+  advanceAnime,
+} from '@/api'
 import type { AnimeItem } from '@/types'
+import AnimeEditor from '@/components/AnimeEditor.vue'
 import AdminPagination from '@/components/AdminPagination.vue'
 import { usePagination } from '@/composables/usePagination'
-
+import {
+  newAnimeForm,
+  watchStatuses,
+  watchLabel,
+  progressLabel,
+} from '@/utils/anime'
 const list = ref<AnimeItem[]>([])
-const loading = ref(false)
-const uploading = ref(false)
-const activeCat = ref('')
-
-const categories = computed(() => {
-  const set = new Set<string>()
-  for (const a of list.value) if (a.category) set.add(a.category)
-  return [...set]
-})
-
-/** 下拉选项 = 已有分类 + 本次会话新建的分类 */
-const newCats = ref<string[]>([])
-const catOptions = computed(() => [...new Set([...categories.value, ...newCats.value])])
-
-/** 新建分类按钮：输入名称后自动选中 */
-function addCategory() {
-  ElMessageBox.prompt('输入新分类名称（如：AI漫剧 / 漫画改 / 原创）', '新建分类', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    inputPattern: /\S+/,
-    inputErrorMessage: '分类名不能为空',
-  })
-    .then(({ value }) => {
-      const name = value.trim()
-      if (name && !catOptions.value.includes(name)) newCats.value.push(name)
-      dialog.data.category = name
-    })
-    .catch(() => {})
-}
-
-const filteredList = computed(() =>
-  activeCat.value ? list.value.filter((a) => a.category === activeCat.value) : list.value
+const loading = ref(false),
+  error = ref(false),
+  saving = ref(false),
+  uploading = ref(false),
+  visible = ref(false)
+const editId = ref(0),
+  advancing = ref<number | null>(null)
+const form = ref(newAnimeForm())
+const keyword = ref(''),
+  category = ref(''),
+  status = ref('')
+const categories = computed(() => [
+  ...new Set(list.value.map((a) => a.category).filter(Boolean)),
+])
+const filtered = computed(() =>
+  list.value.filter(
+    (a) =>
+      a.title.toLowerCase().includes(keyword.value.trim().toLowerCase()) &&
+      (!category.value || a.category === category.value) &&
+      (!status.value || a.watchStatus === status.value),
+  ),
 )
-const { page, pagedList } = usePagination(filteredList)
-
-const dialog = reactive({
-  visible: false,
-  mode: 'create' as 'create' | 'edit',
-  editId: 0,
-  data: {
-    title: '',
-    cover: '',
-    category: 'AI漫剧',
-    region: '日本',
-    episodes: '',
-    playCount: 0,
-    description: '',
-    rank: 0,
-    status: 1 as 0 | 1,
-  },
+const { page, pagedList } = usePagination(filtered)
+watch([keyword, category, status], () => {
+  page.value = 1
 })
-
-function formatCount(n: number): string {
-  if (!n) return '0'
-  return n >= 10000 ? (n / 10000).toFixed(1) + ' 万' : String(n)
-}
-
 async function load() {
   loading.value = true
+  error.value = false
   try {
     list.value = (await adminFetchAnimes()) || []
+  } catch {
+    error.value = true
   } finally {
     loading.value = false
   }
 }
-
-function openCreate() {
-  const maxRank = list.value.reduce((m, a) => Math.max(m, a.rank), 0)
-  dialog.mode = 'create'
-  dialog.editId = 0
-  dialog.data = {
-    title: '',
-    cover: '',
-    category: 'AI漫剧',
-    region: '日本',
-    episodes: '',
-    playCount: 0,
-    description: '',
-    rank: maxRank + 1,
-    status: 1,
+function open(row?: AnimeItem) {
+  editId.value = row?.id || 0
+  form.value = newAnimeForm()
+  if (row) {
+    const {
+      id,
+      createdAt,
+      updatedAt,
+      progressUpdatedAt,
+      reviewUpdatedAt,
+      ...data
+    } = row
+    form.value = { ...form.value, ...data }
   }
-  dialog.visible = true
+  visible.value = true
 }
-
-function openEdit(row: AnimeItem) {
-  dialog.mode = 'edit'
-  dialog.editId = row.id
-  dialog.data = {
-    title: row.title,
-    cover: row.cover,
-    category: row.category,
-    region: row.region,
-    episodes: row.episodes,
-    playCount: row.playCount || 0,
-    description: row.description,
-    rank: row.rank,
-    status: row.status,
-  }
-  dialog.visible = true
-}
-
-async function onCoverChange(file: { raw?: File }) {
-  if (!file.raw) return
-  uploading.value = true
-  try {
-    dialog.data.cover = await uploadImage(file.raw)
-    ElMessage.success('封面已上传，地址已填入')
-  } finally {
-    uploading.value = false
-  }
-}
-
 async function save() {
-  if (!dialog.data.title.trim()) {
-    ElMessage.warning('请填写标题')
+  if (saving.value || uploading.value) return
+  if (!form.value.title.trim()) {
+    ElMessage.warning('请填写动漫名称')
     return
   }
-  if (dialog.mode === 'create') {
-    await createAnime({ ...dialog.data })
-    ElMessage.success('已添加')
-  } else {
-    await updateAnime(dialog.editId, { ...dialog.data })
-    ElMessage.success('已更新')
+  if (
+    form.value.totalEpisodes != null &&
+    form.value.watched > form.value.totalEpisodes
+  ) {
+    ElMessage.warning('已看集数不能超过总集数')
+    return
   }
-  dialog.visible = false
-  load()
+  if (form.value.watchUrl) {
+    try {
+      const u = new URL(form.value.watchUrl)
+      if (!['http:', 'https:'].includes(u.protocol)) throw new Error()
+    } catch {
+      ElMessage.warning('请填写有效的 http 或 https 观看链接')
+      return
+    }
+  }
+  saving.value = true
+  try {
+    if (editId.value) await updateAnime(editId.value, form.value)
+    else await createAnime(form.value)
+    ElMessage.success('已保存')
+    visible.value = false
+    await load()
+  } finally {
+    saving.value = false
+  }
 }
-
+async function advance(row: AnimeItem) {
+  if (advancing.value != null) return
+  advancing.value = row.id
+  try {
+    await advanceAnime(row.id)
+    ElMessage.success('观看进度已更新')
+    await load()
+  } finally {
+    advancing.value = null
+  }
+}
 async function remove(row: AnimeItem) {
   await deleteAnime(row.id)
   ElMessage.success('已删除')
-  load()
+  await load()
 }
-
 onMounted(load)
 </script>
-
 <template>
   <div>
     <div class="toolbar">
-      <el-button type="primary" @click="openCreate">＋ 添加动漫</el-button>
-      <div v-if="categories.length" class="cat-tabs">
-        <span class="cat-label">分类筛选：</span>
-        <el-tag
-          :type="activeCat === '' ? 'primary' : 'info'"
-          class="cat-tag"
-          @click="activeCat = ''"
-        >全部</el-tag>
-        <el-tag
-          v-for="cat in categories"
-          :key="cat"
-          :type="activeCat === cat ? 'primary' : 'info'"
-          class="cat-tag"
-          @click="activeCat = activeCat === cat ? '' : cat"
-        >{{ cat }}</el-tag>
-      </div>
-      <span class="tip">排名小的在前；封面可粘贴图片地址或直接上传</span>
+      <el-button type="primary" @click="open()">添加动漫</el-button
+      ><span>记录追番进度、个人评价与观后感</span>
     </div>
-
-    <el-table :data="filteredList" v-loading="loading" stripe class="card table-card">
-      <el-table-column prop="rank" label="排名" width="70" />
-      <el-table-column label="封面" width="80">
-        <template #default="{ row }">
-          <div class="cover-thumb" :style="row.cover ? { background: `url(${row.cover}) center/cover` } : {}">
-            <span v-if="!row.cover">{{ row.title.slice(0, 1) }}</span>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column prop="title" label="标题" min-width="180" />
-      <el-table-column prop="category" label="分类" width="100" />
-      <el-table-column prop="region" label="地区" width="90" />
-      <el-table-column prop="episodes" label="集数" width="130" />
-      <el-table-column label="播放量" width="100">
-        <template #default="{ row }">{{ formatCount(row.playCount) }}</template>
-      </el-table-column>
-      <el-table-column prop="description" label="简介" min-width="200" show-overflow-tooltip />
-      <el-table-column label="状态" width="85">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-            {{ row.status === 1 ? '上架' : '下架' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="150" fixed="right">
-        <template #default="{ row }">
-          <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-          <el-popconfirm :title="`删除「${row.title}」？`" @confirm="remove(row)">
-            <template #reference>
-              <el-button link type="danger" size="small">删除</el-button>
-            </template>
-          </el-popconfirm>
-        </template>
-      </el-table-column>
+    <div class="filters">
+      <el-input
+        v-model="keyword"
+        clearable
+        placeholder="搜索动漫名称"
+      /><el-select v-model="category" clearable placeholder="全部题材"
+        ><el-option
+          v-for="c in categories"
+          :key="c"
+          :value="c"
+          :label="c" /></el-select
+      ><el-select v-model="status" clearable placeholder="全部观看状态"
+        ><el-option
+          v-for="s in watchStatuses"
+          :key="s.value"
+          :value="s.value"
+          :label="s.label"
+      /></el-select>
+    </div>
+    <div v-if="error" role="alert">
+      动漫列表加载失败。<el-button text @click="load">重试</el-button>
+    </div>
+    <el-table :data="pagedList" v-loading="loading" class="card" stripe>
+      <el-table-column prop="title" label="作品" min-width="180" />
+      <el-table-column prop="category" label="题材" width="100" />
+      <el-table-column label="观看状态" width="110"
+        ><template #default="{ row }">{{
+          watchLabel(row.watchStatus)
+        }}</template></el-table-column
+      >
+      <el-table-column label="进度" width="110"
+        ><template #default="{ row }">{{
+          progressLabel(row)
+        }}</template></el-table-column
+      >
+      <el-table-column label="个人评分" width="95"
+        ><template #default="{ row }">{{
+          row.rating == null ? '未评分' : row.rating.toFixed(1)
+        }}</template></el-table-column
+      >
+      <el-table-column label="喜爱排名" width="90"
+        ><template #default="{ row }">{{
+          row.rank || '—'
+        }}</template></el-table-column
+      >
+      <el-table-column label="推荐" width="70"
+        ><template #default="{ row }">{{
+          row.recommended ? '是' : '—'
+        }}</template></el-table-column
+      >
+      <el-table-column label="展示" width="80"
+        ><template #default="{ row }"
+          ><el-tag :type="row.status ? 'success' : 'info'">{{
+            row.status ? '上架' : '下架'
+          }}</el-tag></template
+        ></el-table-column
+      >
+      <el-table-column label="操作" width="250" fixed="right"
+        ><template #default="{ row }"
+          ><el-button link type="primary" @click="open(row)">编辑</el-button
+          ><el-button
+            link
+            :loading="advancing === row.id"
+            :disabled="
+              advancing != null ||
+              (row.totalEpisodes != null && row.watched >= row.totalEpisodes)
+            "
+            @click="advance(row)"
+            >看完一集 +1</el-button
+          ><el-popconfirm
+            :title="`删除「${row.title}」？`"
+            @confirm="remove(row)"
+            ><template #reference
+              ><el-button link type="danger">删除</el-button></template
+            ></el-popconfirm
+          ></template
+        ></el-table-column
+      >
     </el-table>
-    <AdminPagination v-model:page="page" :total="filteredList.length" />
-
-    <el-dialog v-model="dialog.visible" :title="dialog.mode === 'create' ? '添加动漫' : '编辑动漫'" width="560px">
-      <el-form label-width="90px">
-        <el-form-item label="标题 *">
-          <el-input v-model="dialog.data.title" placeholder="动漫名称" />
-        </el-form-item>
-        <el-form-item label="封面">
-          <div class="cover-row">
-            <div class="cover-preview" :style="dialog.data.cover ? { background: `url(${dialog.data.cover}) center/cover` } : {}">
-              <span v-if="!dialog.data.cover">{{ dialog.data.title.slice(0, 1) || '封' }}</span>
-            </div>
-            <el-input
-              v-model="dialog.data.cover"
-              placeholder="粘贴封面图片地址，或点右侧按钮直接上传"
-            />
-            <el-upload
-              accept="image/*"
-              :show-file-list="false"
-              :auto-upload="false"
-              :on-change="onCoverChange"
-            >
-              <el-button :loading="uploading" class="up-btn">上传</el-button>
-            </el-upload>
-          </div>
-        </el-form-item>
-        <el-form-item label="分类">
-          <div class="cat-row">
-            <el-select
-              v-model="dialog.data.category"
-              filterable
-              allow-create
-              default-first-option
-              placeholder="下拉选择已有分类，或输入新分类"
-              class="cat-select"
-            >
-              <el-option v-for="cat in catOptions" :key="cat" :label="cat" :value="cat" />
-            </el-select>
-            <el-button class="add-btn" @click="addCategory">＋ 新建分类</el-button>
-          </div>
-        </el-form-item>
-        <el-form-item label="地区">
-          <el-input v-model="dialog.data.region" placeholder="如：日本 / 中国" />
-        </el-form-item>
-        <el-form-item label="集数">
-          <el-input v-model="dialog.data.episodes" placeholder="如：更新至第12集 / 全13集" />
-        </el-form-item>
-        <el-form-item label="播放量">
-          <el-input-number v-model="dialog.data.playCount" :min="0" :step="10000" style="width: 200px" />
-          <span class="rank-tip">右侧热播榜按此数值排序</span>
-        </el-form-item>
-        <el-form-item label="简介">
-          <el-input v-model="dialog.data.description" type="textarea" :rows="3" />
-        </el-form-item>
-        <el-form-item label="排名">
-          <el-input-number v-model="dialog.data.rank" :min="0" />
-          <span class="rank-tip">数字小的排前面</span>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-radio-group v-model="dialog.data.status">
-            <el-radio-button :value="1">上架</el-radio-button>
-            <el-radio-button :value="0">下架</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialog.visible = false">取消</el-button>
-        <el-button type="primary" @click="save">保存</el-button>
-      </template>
+    <AdminPagination v-model:page="page" :total="filtered.length" />
+    <el-dialog
+      v-model="visible"
+      :title="editId ? '编辑动漫' : '添加动漫'"
+      width="min(1000px, 96vw)"
+      :close-on-click-modal="false"
+      :close-on-press-escape="!saving && !uploading"
+      :show-close="!saving && !uploading"
+      destroy-on-close
+    >
+      <AnimeEditor
+        v-model="form"
+        :categories="categories"
+        @uploading="uploading = $event"
+      />
+      <template #footer
+        ><el-button :disabled="saving || uploading" @click="visible = false"
+          >取消</el-button
+        ><el-button
+          type="primary"
+          :loading="saving"
+          :disabled="uploading"
+          @click="save"
+          >保存</el-button
+        ></template
+      >
     </el-dialog>
   </div>
 </template>
-
 <style scoped>
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.tip {
-  font-size: 12.5px;
-  color: var(--muted);
-}
-
-.cat-tabs {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 16px;
   flex-wrap: wrap;
+  margin-bottom: 20px;
 }
-
-.cat-label {
+.toolbar span {
+  color: var(--muted);
   font-size: 13px;
-  color: var(--muted);
 }
-
-.cat-tag {
-  cursor: pointer;
-}
-
-.sort-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  line-height: 1;
-}
-
-.sort-btn {
-  padding: 0 4px;
-}
-
-.table-card {
-  width: 100%;
-}
-
-.cover-thumb {
-  width: 42px;
-  height: 56px;
-  border-radius: 4px;
-  background: var(--surface);
+.filters {
   display: grid;
-  place-items: center;
-  color: var(--muted);
-  font-family: var(--font-heading);
-  font-weight: 700;
-}
-
-.cover-row {
-  display: flex;
-  align-items: center;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 12px;
-  width: 100%;
+  margin-bottom: 18px;
 }
-
-.cover-preview {
-  width: 60px;
-  height: 80px;
-  flex-shrink: 0;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  font-family: var(--font-heading);
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.up-btn {
-  white-space: nowrap;
-}
-
-.rank-tip {
-  margin-left: 10px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.cat-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
-.cat-select {
-  flex: 1;
+@media (max-width: 700px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

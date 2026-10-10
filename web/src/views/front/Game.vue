@@ -1,365 +1,96 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { fetchGames } from '@/api'
-import type { GameItem } from '@/types'
-
-const all = ref<GameItem[]>([])
-const activeCat = ref('')
-const loading = ref(false)
-
-const categories = computed(() => {
-  const set = new Set<string>()
-  for (const g of all.value) if (g.category) set.add(g.category)
-  return [...set]
-})
-
-const filtered = computed(() =>
-  activeCat.value ? all.value.filter((g) => g.category === activeCat.value) : all.value,
-)
-
-/** 🔥 热门游戏榜：按热度取前 8 */
-const hotList = computed(() =>
-  [...all.value].sort((a, b) => (b.hot || 0) - (a.hot || 0)).slice(0, 8),
-)
-
-function formatHot(n: number): string {
-  if (!n) return '0'
-  return n >= 10000 ? (n / 10000).toFixed(1) + ' 万' : String(n)
+import { fetchGames, fetchLatestGamePosts } from '@/api'
+import type { GameItem, GamePostItem } from '@/types'
+import GameCard from '@/components/GameCard.vue'
+import { playStatuses, splitGameTags } from '@/utils/game'
+const games = ref<GameItem[]>([])
+const posts = ref<GamePostItem[]>([])
+const keyword = ref('')
+const category = ref('')
+const platform = ref('')
+const playStatus = ref('')
+const loading = ref(true)
+const error = ref(false)
+const postsError = ref(false)
+const categories = computed(() => [...new Set(games.value.map(g => g.category).filter(Boolean))])
+const platforms = computed(() => [...new Set(games.value.flatMap(g => splitGameTags(g.platform)))])
+const filtered = computed(() => games.value.filter(g =>
+  g.title.toLowerCase().includes(keyword.value.trim().toLowerCase()) &&
+  (!category.value || g.category === category.value) &&
+  (!platform.value || splitGameTags(g.platform).includes(platform.value)) &&
+  (!playStatus.value || g.playStatus === playStatus.value)))
+const playing = computed(() => [...games.value].filter(g => g.playStatus === 'playing').sort((a,b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0])
+const recommendations = computed(() => games.value.filter(g => g.recommended).sort((a,b) => a.recommendOrder - b.recommendOrder || a.id - b.id).slice(0, 5))
+const gameName = (id: number) => games.value.find(g => g.id === id)?.title || ''
+function reset() { keyword.value = ''; category.value = ''; platform.value = ''; playStatus.value = '' }
+async function loadPosts() {
+  postsError.value = false
+  try { posts.value = (await fetchLatestGamePosts()) || [] } catch { postsError.value = true }
 }
-
-const parseTags = (tags: string): string[] =>
-  tags.split(/[,，]/).map((t) => t.trim()).filter(Boolean)
-
-onMounted(async () => {
-  loading.value = true
-  try {
-    all.value = (await fetchGames()) || []
-  } finally {
-    loading.value = false
-  }
-})
+async function load() {
+  loading.value = true; error.value = false
+  try { games.value = (await fetchGames()) || [] } catch { error.value = true }
+  finally { loading.value = false }
+}
+onMounted(() => { void load(); void loadPosts() })
 </script>
-
 <template>
-  <div class="container game-wrap">
-    <div class="game-hero card">
-      <h1 class="hero-title">🎮 游戏世界</h1>
-      <p class="hero-sub">在玩的游戏与电竞项目，按分类浏览。</p>
-      <div v-if="categories.length" class="cat-tabs">
-        <button class="cat-tab" :class="{ active: activeCat === '' }" @click="activeCat = ''">全部</button>
-        <button
-          v-for="cat in categories"
-          :key="cat"
-          class="cat-tab"
-          :class="{ active: activeCat === cat }"
-          @click="activeCat = activeCat === cat ? '' : cat"
-        >
-          {{ cat }}
-        </button>
+  <div class="container game-page">
+    <header class="page-heading"><h1>游戏与手记</h1><p>记录在玩的世界，也留下值得分享的经验。</p></header>
+    <div v-if="error" class="card notice" role="alert">游戏库加载失败。<el-button text @click="load">重新加载</el-button></div>
+    <template v-else>
+      <section v-if="playing" class="playing card">
+        <img v-if="playing.cover" :src="playing.cover" :alt="playing.title" />
+        <div><span class="section-label">最近在玩</span><h2>{{ playing.title }}</h2><p>{{ playing.review || playing.description }}</p><p v-if="playing.progress" class="muted">当前进度：{{ playing.progress }}</p><router-link :to="`/game/${playing.id}`" class="entry">查看游玩记录</router-link></div>
+      </section>
+      <div class="layout">
+        <section class="library" aria-labelledby="library-title">
+          <div class="library-heading"><h2 id="library-title">我的游戏库</h2><span>{{ filtered.length }} 款游戏</span></div>
+          <div class="filters">
+            <el-input v-model="keyword" clearable placeholder="搜索游戏名称" aria-label="搜索游戏名称" />
+            <el-select v-model="category" clearable placeholder="全部类型" aria-label="游戏类型"><el-option v-for="c in categories" :key="c" :value="c" :label="c" /></el-select>
+            <el-select v-model="platform" clearable placeholder="全部平台" aria-label="游戏平台"><el-option v-for="p in platforms" :key="p" :value="p" :label="p" /></el-select>
+            <el-select v-model="playStatus" clearable placeholder="全部游玩状态" aria-label="游玩状态"><el-option v-for="s in playStatuses" :key="s.value" :value="s.value" :label="s.label" /></el-select>
+          </div>
+          <div v-if="loading" class="notice" aria-live="polite">正在加载游戏库…</div>
+          <div v-else-if="filtered.length" class="game-grid"><GameCard v-for="g in filtered" :key="g.id" :game="g" /></div>
+          <el-empty v-else :description="games.length ? '没有符合条件的游戏' : '游戏手记正在整理中'"><el-button v-if="games.length" @click="reset">清除筛选</el-button></el-empty>
+        </section>
+        <aside>
+          <section class="side-section"><h2>站长推荐</h2><p v-if="!recommendations.length" class="muted">推荐清单正在整理中。</p><router-link v-for="g in recommendations" :key="g.id" :to="`/game/${g.id}`" class="side-item"><strong>{{ g.title }}</strong><p>{{ g.review || g.description }}</p></router-link></section>
+          <section class="side-section"><h2>最新攻略</h2><p v-if="postsError" role="alert">攻略加载失败。<el-button text @click="loadPosts">重试</el-button></p><p v-else-if="!posts.length" class="muted">新的攻略正在路上。</p><router-link v-for="p in posts" :key="p.id" :to="`/game/post/${p.id}`" class="side-item"><span class="muted">{{ gameName(p.gameId) }} · {{ p.type }}</span><strong>{{ p.title }}</strong><small>{{ p.updatedAt.slice(0, 10) }} 更新</small></router-link></section>
+        </aside>
       </div>
-    </div>
-
-    <div class="game-layout">
-      <!-- 左：游戏卡片 -->
-      <div class="game-main">
-        <div class="game-grid" v-loading="loading">
-          <router-link v-for="g in filtered" :key="g.id" :to="`/game/${g.id}`" class="game-card card">
-            <div class="cover" :style="g.cover ? { background: `url(${g.cover}) center/cover` } : {}">
-              <span v-if="!g.cover" class="cover-fallback">{{ g.title.slice(0, 1) }}</span>
-              <span v-if="g.platform" class="platform-tag">{{ g.platform }}</span>
-            </div>
-            <div class="info">
-              <h3 class="title">{{ g.title }}</h3>
-              <p class="meta">
-                <span v-if="g.category" class="cat-badge">{{ g.category }}</span>
-                <span class="hot">🔥 {{ formatHot(g.hot) }}</span>
-              </p>
-              <p v-if="g.description" class="desc">{{ g.description }}</p>
-              <div class="tags">
-                <span v-for="t in parseTags(g.tags)" :key="t" class="tag">{{ t }}</span>
-              </div>
-            </div>
-          </router-link>
-        </div>
-        <el-empty v-if="!loading && !filtered.length" description="这个分类下还没有游戏" />
-      </div>
-
-      <!-- 右：热门榜 -->
-      <aside v-if="hotList.length" class="hot-panel card">
-        <header class="hot-head">
-          <h3 class="hot-title">🔥 热门榜</h3>
-        </header>
-        <ol class="hot-list">
-          <li v-for="(g, i) in hotList" :key="g.id" class="hot-item">
-            <span class="hot-rank" :class="{ top3: i < 3 }">{{ i + 1 }}</span>
-            <router-link :to="`/game/${g.id}`" class="hot-name" :title="g.title">{{ g.title }}</router-link>
-            <span v-if="g.platform" class="hot-plat">{{ g.platform.split(',')[0] }}</span>
-            <span class="hot-count">{{ formatHot(g.hot) }}</span>
-          </li>
-        </ol>
-      </aside>
-    </div>
+    </template>
   </div>
 </template>
-
 <style scoped>
-.game-wrap {
-  max-width: 1200px;
-}
-
-.game-hero {
-  padding: 32px 40px;
-  margin-bottom: 22px;
-  background:
-    radial-gradient(circle at 92% -30%, var(--accent-soft), transparent 50%),
-    var(--card);
-}
-
-.hero-title {
-  font-family: var(--font-heading);
-  font-size: 30px;
-  margin: 0 0 8px;
-}
-
-.hero-sub {
-  color: var(--muted);
-  font-size: 14.5px;
-  margin: 0 0 16px;
-}
-
-.cat-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.cat-tab {
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--muted);
-  padding: 5px 16px;
-  border-radius: 999px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cat-tab.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  font-weight: 600;
-}
-
-/* ===== 两栏布局 ===== */
-.game-layout {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 20px;
-  align-items: start;
-}
-
-.game-main {
-  min-width: 0;
-}
-
-.game-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  min-height: 200px;
-}
-
-.game-card {
-  overflow: hidden;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.game-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lift);
-}
-
-.cover {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  background: linear-gradient(150deg, var(--surface-alt), var(--surface));
-  display: grid;
-  place-items: center;
-}
-
-.cover-fallback {
-  font-family: var(--font-heading);
-  font-size: 44px;
-  font-weight: 700;
-  color: var(--muted);
-  opacity: 0.55;
-}
-
-.platform-tag {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  font-size: 11px;
-  color: #fff;
-  background: rgb(0 0 0 / 0.55);
-  border-radius: 4px;
-  padding: 1px 7px;
-}
-
-.info {
-  padding: 14px 16px 16px;
-}
-
-.title {
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--heading);
-  margin: 0 0 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0 0 8px;
-  flex-wrap: wrap;
-}
-
-.cat-badge {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: 999px;
-  padding: 1px 9px;
-}
-
-.hot {
-  font-size: 12px;
-}
-
-.desc {
-  font-size: 13px;
-  color: var(--text);
-  line-height: 1.6;
-  margin: 0 0 8px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.tag {
-  font-size: 11px;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  padding: 0 7px;
-  border-radius: 999px;
-}
-
-/* ===== 热门榜 ===== */
-.hot-panel {
-  position: sticky;
-  top: 86px;
-  padding: 16px 18px;
-}
-
-.hot-head {
-  margin-bottom: 10px;
-}
-
-.hot-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--heading);
-  margin: 0;
-}
-
-.hot-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.hot-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 4px;
-  border-bottom: 1px dashed var(--border);
-}
-
-.hot-item:last-child {
-  border-bottom: none;
-}
-
-.hot-rank {
-  width: 18px;
-  flex-shrink: 0;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--muted);
-  font-style: italic;
-}
-
-.hot-rank.top3 {
-  color: var(--accent);
-}
-
-.hot-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hot-plat {
-  font-size: 11px;
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-.hot-count {
-  font-size: 12px;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  flex-shrink: 0;
-}
-
-@media (max-width: 1000px) {
-  .game-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .hot-panel {
-    position: static;
-    order: 2;
-  }
-}
-
-@media (max-width: 700px) {
-  .game-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.game-page { max-width: 1200px; }
+.page-heading { margin: 6px 0 28px; }
+h1 { font: 700 34px var(--font-heading); margin: 0 0 10px; }
+.page-heading p,.muted { color: var(--muted); }
+h2 { font: 700 22px var(--font-heading); margin: 0 0 16px; }
+.playing { display: grid; grid-template-columns: minmax(220px, 42%) 1fr; overflow: hidden; margin-bottom: 36px; }
+.playing img { width: 100%; height: 100%; max-height: 320px; object-fit: cover; }
+.playing > div { padding: 28px; }
+.playing:not(:has(img)) { grid-template-columns: 1fr; }
+.playing h2 { font-size: 30px; margin-top: 10px; }
+.playing p { line-height: 1.8; }
+.section-label,.entry { color: var(--accent); font-size: 14px; }
+.entry { text-decoration: underline; text-underline-offset: 5px; }
+.layout { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 36px; }
+.library-heading { display: flex; align-items: baseline; justify-content: space-between; }
+.library-heading span { color: var(--muted); font-size: 13px; }
+.filters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
+.game-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.side-section { margin-bottom: 30px; border-top: 2px solid var(--border); padding-top: 18px; }
+.side-item { display: block; padding: 14px 0; border-bottom: 1px solid var(--border); color: var(--text); }
+.side-item strong { display: block; margin: 5px 0; }
+.side-item p { font-size: 13px; color: var(--muted); line-height: 1.7; margin: 5px 0; }
+.side-item small,.side-item > span { color: var(--muted); font-size: 12px; }
+.side-item:hover strong { color: var(--accent); }
+.notice { padding: 30px; }
+@media(max-width: 900px) { .layout { grid-template-columns: 1fr; } aside { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; } }
+@media(max-width: 600px) { .playing,.game-grid,aside { grid-template-columns: 1fr; } .playing img { max-height: 220px; } .playing > div { padding: 20px; } h1 { font-size: 28px; } }
 </style>

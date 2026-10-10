@@ -110,7 +110,6 @@ export interface DashboardStats {
   commentCount: number
   categoryCount: number
   tagCount: number
-  viewTotal: number
   bookCount: number
   chapterCount: number
 }
@@ -216,13 +215,27 @@ export interface WordItem {
 
 /** 动漫排行榜条目 */
 export interface AnimeItem {
+  watchStatus: string
+  airStatus: string
+  watched: number
+  totalEpisodes: number | null
+  rating: number | null
+  year: number
+  source: string
+  review: string
+  content: string
+  spoiler: boolean
+  recommended: boolean
+  recommendOrder: number
+  watchUrl: string
+  watchPlatform: string
+  progressUpdatedAt: string | null
+  reviewUpdatedAt: string | null
   id: number
   title: string
   cover: string
   category: string
   region: string
-  episodes: string
-  playCount: number
   description: string
   rank: number
   status: 0 | 1
@@ -262,6 +275,12 @@ export interface AiPromptItem {
 
 /** 游戏板块条目 */
 export interface GameItem {
+  playStatus: '' | 'wishlist' | 'playing' | 'completed' | 'paused'
+  review: string
+  progress: string
+  recommended: boolean
+  recommendOrder: number
+  postCount?: number
   id: number
   title: string
   cover: string
@@ -270,7 +289,6 @@ export interface GameItem {
   description: string
   content?: string
   tags: string
-  hot: number
   sort: number
   status: 0 | 1
   createdAt: string
